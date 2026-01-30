@@ -1,0 +1,395 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1,user-scalable=no"
+    />
+    <title>local weather | Sample | ArcGIS Maps SDK for JavaScript 4.33</title>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.33/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.33/"></script>
+    <script
+      type="module"
+      src="https://js.arcgis.com/calcite-components/3.2.1/calcite.esm.js"
+    ></script>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+    <script type="module">
+      require([
+        "esri/Map",
+        "esri/views/SceneView",
+        "esri/layers/GraphicsLayer",
+      ], function (Map, SceneView, GraphicsLayer) {
+        const map = new Map({
+          basemap: "satellite",
+        });
+
+        const view = new SceneView({
+          container: "viewDiv",
+          map: map,
+          camera: {
+            position: {
+              x: 116.4,
+              y: 39.9,
+              z: 10000,
+            },
+            tilt: 60,
+          },
+          viewingMode: "local",
+          clippingArea: {
+            xmin: 116.2,
+            ymin: 39.7,
+            xmax: 116.6,
+            ymax: 40.1,
+            spatialReference: { wkid: 4326 },
+          },
+        });
+
+        // 创建Canvas天气效果类
+        class CanvasWeatherEffects {
+          constructor(sceneView) {
+            this.view = sceneView;
+            this.canvas = null;
+            this.ctx = null;
+            this.particles = [];
+            this.animationId = null;
+            this.isActive = false;
+            this.weatherType = null;
+
+            this.setupCanvas();
+          }
+
+          // 设置Canvas叠加层
+          setupCanvas() {
+            this.canvas = document.createElement("canvas");
+            this.ctx = this.canvas.getContext("2d");
+
+            // 设置Canvas样式
+            this.canvas.style.position = "absolute";
+            this.canvas.style.top = "0";
+            this.canvas.style.left = "0";
+            this.canvas.style.pointerEvents = "none";
+            this.canvas.style.zIndex = "1000";
+
+            // 添加到视图容器
+            this.view.container.appendChild(this.canvas);
+
+            // 监听视图大小变化
+            this.view.watch("size", () => {
+              this.resizeCanvas();
+            });
+
+            this.resizeCanvas();
+          }
+
+          // 调整Canvas大小
+          resizeCanvas() {
+            const container = this.view.container;
+            this.canvas.width = container.clientWidth;
+            this.canvas.height = container.clientHeight;
+          }
+
+          // 创建雨滴效果
+          createRain(intensity = 150) {
+            this.clearParticles();
+            this.weatherType = "rain";
+            this.isActive = true;
+
+            for (let i = 0; i < intensity; i++) {
+              this.particles.push({
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height - this.canvas.height,
+                length: Math.random() * 15 + 10,
+                speed: Math.random() * 8 + 5,
+                opacity: Math.random() * 0.6 + 0.2,
+              });
+            }
+
+            this.animate();
+          }
+
+          // 创建雪花效果
+          createSnow(intensity = 100) {
+            this.clearParticles();
+            this.weatherType = "snow";
+            this.isActive = true;
+
+            for (let i = 0; i < intensity; i++) {
+              this.particles.push({
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height - this.canvas.height,
+                radius: Math.random() * 4 + 2,
+                speed: Math.random() * 2 + 1,
+                drift: Math.random() * 2 - 1,
+                opacity: Math.random() * 0.8 + 0.2,
+              });
+            }
+
+            this.animate();
+          }
+
+          // 创建雾效果
+          createFog() {
+            this.clearParticles();
+            this.weatherType = "fog";
+            this.isActive = true;
+
+            // 雾效果不使用粒子，直接绘制渐变
+            this.animate();
+          }
+
+          // 绘制雨滴
+          drawRain() {
+            this.ctx.strokeStyle = `rgba(100, 150, 255, 0.6)`;
+            this.ctx.lineWidth = 1;
+            this.ctx.lineCap = "round";
+
+            this.particles.forEach((drop) => {
+              this.ctx.globalAlpha = drop.opacity;
+              this.ctx.beginPath();
+              this.ctx.moveTo(drop.x, drop.y);
+              this.ctx.lineTo(drop.x - drop.length * 0.3, drop.y + drop.length);
+              this.ctx.stroke();
+
+              // 更新位置
+              drop.y += drop.speed;
+              drop.x -= 1;
+
+              // 重置雨滴位置
+              if (drop.y > this.canvas.height + drop.length) {
+                drop.y = -drop.length;
+                drop.x = Math.random() * this.canvas.width;
+              }
+            });
+          }
+
+          // 绘制雪花
+          drawSnow() {
+            this.ctx.fillStyle = "white";
+
+            this.particles.forEach((flake) => {
+              this.ctx.globalAlpha = flake.opacity;
+              this.ctx.beginPath();
+              this.ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+              this.ctx.fill();
+
+              // 更新位置
+              flake.y += flake.speed;
+              flake.x += flake.drift;
+
+              // 重置雪花位置
+              if (flake.y > this.canvas.height + flake.radius) {
+                flake.y = -flake.radius;
+                flake.x = Math.random() * this.canvas.width;
+              }
+
+              // 边界检查
+              if (flake.x > this.canvas.width + flake.radius) {
+                flake.x = -flake.radius;
+              } else if (flake.x < -flake.radius) {
+                flake.x = this.canvas.width + flake.radius;
+              }
+            });
+          }
+
+          // 绘制雾效果
+          drawFog() {
+            const gradient = this.ctx.createLinearGradient(
+              0,
+              0,
+              0,
+              this.canvas.height
+            );
+            gradient.addColorStop(0, "rgba(200, 200, 200, 0.1)");
+            gradient.addColorStop(0.3, "rgba(180, 180, 180, 0.3)");
+            gradient.addColorStop(0.7, "rgba(160, 160, 160, 0.2)");
+            gradient.addColorStop(1, "rgba(140, 140, 140, 0.1)");
+
+            this.ctx.globalAlpha = 0.7;
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+          }
+
+          // 动画循环
+          animate() {
+            if (!this.isActive) return;
+
+            // 清除画布
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // 根据天气类型绘制效果
+            switch (this.weatherType) {
+              case "rain":
+                this.drawRain();
+                break;
+              case "snow":
+                this.drawSnow();
+                break;
+              case "fog":
+                this.drawFog();
+                break;
+            }
+
+            this.animationId = requestAnimationFrame(() => this.animate());
+          }
+
+          // 清除天气效果
+          clearParticles() {
+            this.isActive = false;
+
+            if (this.animationId) {
+              cancelAnimationFrame(this.animationId);
+              this.animationId = null;
+            }
+
+            this.particles = [];
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          }
+
+          // 销毁Canvas
+          destroy() {
+            this.clearParticles();
+            if (this.canvas && this.canvas.parentNode) {
+              this.canvas.parentNode.removeChild(this.canvas);
+            }
+          }
+        }
+
+        // 创建天气控制界面
+        function createWeatherControls(weatherSystem) {
+          const controlPanel = document.createElement("div");
+          controlPanel.style.cssText = `
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.9);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      min-width: 250px;
+      font-family: Arial, sans-serif;
+      z-index: 2000;
+    `;
+
+          controlPanel.innerHTML = `
+      <h3 style="margin: 0 0 15px 0; font-size: 16px;">Canvas天气效果</h3>
+      
+      <div style="margin-bottom: 15px;">
+        <button id="rainBtn" class="weather-btn">🌧️ 雨天</button>
+        <button id="snowBtn" class="weather-btn">❄️ 雪天</button>
+        <button id="fogBtn" class="weather-btn">🌫️ 雾天</button>
+        <button id="clearBtn" class="weather-btn">☀️ 晴天</button>
+      </div>
+      
+      <div style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px;">雨量强度: </label>
+        <input type="range" id="rainIntensity" min="50" max="300" value="150" style="width: 100%;">
+        <span id="rainValue" style="font-size: 12px;">150</span>
+      </div>
+      
+      <div style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px;">雪量强度: </label>
+        <input type="range" id="snowIntensity" min="30" max="200" value="100" style="width: 100%;">
+        <span id="snowValue" style="font-size: 12px;">100</span>
+      </div>
+      
+      <style>
+        .weather-btn {
+          padding: 8px 12px;
+          margin: 2px;
+          cursor: pointer;
+          border: none;
+          border-radius: 4px;
+          background: #4CAF50;
+          color: white;
+          font-size: 12px;
+        }
+        .weather-btn:hover {
+          background: #45a049;
+        }
+      </style>
+    `;
+
+          // 绑定事件
+          controlPanel
+            .querySelector("#rainBtn")
+            .addEventListener("click", () => {
+              const intensity = parseInt(
+                controlPanel.querySelector("#rainIntensity").value
+              );
+              weatherSystem.createRain(intensity);
+            });
+
+          controlPanel
+            .querySelector("#snowBtn")
+            .addEventListener("click", () => {
+              const intensity = parseInt(
+                controlPanel.querySelector("#snowIntensity").value
+              );
+              weatherSystem.createSnow(intensity);
+            });
+
+          controlPanel
+            .querySelector("#fogBtn")
+            .addEventListener("click", () => {
+              weatherSystem.createFog();
+            });
+
+          controlPanel
+            .querySelector("#clearBtn")
+            .addEventListener("click", () => {
+              weatherSystem.clearParticles();
+            });
+
+          // 强度滑块事件
+          controlPanel
+            .querySelector("#rainIntensity")
+            .addEventListener("input", (e) => {
+              controlPanel.querySelector("#rainValue").textContent =
+                e.target.value;
+            });
+
+          controlPanel
+            .querySelector("#snowIntensity")
+            .addEventListener("input", (e) => {
+              controlPanel.querySelector("#snowValue").textContent =
+                e.target.value;
+            });
+
+          document.body.appendChild(controlPanel);
+          return controlPanel;
+        }
+
+        // 初始化
+        view.when(() => {
+          const weatherSystem = new CanvasWeatherEffects(view);
+          const controlPanel = createWeatherControls(weatherSystem);
+
+          console.log("Canvas天气效果系统已初始化");
+
+          // 清理资源
+          view.on("destroy", () => {
+            weatherSystem.destroy();
+          });
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <script src="canvas-weather.js"></script>
+  </body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>
+      Intro to MapView - Create a 2D map | Sample | ArcGIS Maps SDK for
+      JavaScript 4.33
+    </title>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+
+    </style>
+
+    <!-- Load Calcite components from CDN -->
+    <script
+      type="module"
+      src="https://js.arcgis.com/calcite-components/3.2.1/calcite.esm.js"
+    ></script>
+
+    <!-- Load the ArcGIS Maps SDK for JavaScript from CDN -->
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.33/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.33/"></script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    <script type="module">
+      const KEY = "eb494a96f276dbadc0cbfaa1deecc708";
+
+      const [
+        Map,
+        SceneView,
+        WebTileLayer,
+        TileInfo,
+        Basemap,
+        SpatialReference,
+      ] = await $arcgis.import([
+        "@arcgis/core/Map.js",
+        "@arcgis/core/views/SceneView.js",
+        "@arcgis/core/layers/WebTileLayer",
+        "@arcgis/core/layers/support/TileInfo",
+        "@arcgis/core/Basemap.js",
+        "@arcgis/core/geometry/SpatialReference.js",
+      ]);
+      const tileInfo = TileInfo.create();
+
+      class TianDiTuLayer extends WebTileLayer {
+        constructor(props) {
+          super(props);
+          this.id = props.id;
+          this.title = props.title;
+          this.tileInfo = tileInfo;
+          this.urlTemplate = this.generateUrlTemplate(props.urlTemplate);
+          this.subDomains = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"];
+          this.spatialReference = SpatialReference.WebMercator;
+        }
+
+        generateUrlTemplate(urlTemplate) {
+          const [layer, tileMatrixSet] = urlTemplate.split("/")[3].split("_");
+          return `http://{subDomain}.tianditu.gov.cn/${layer}_${tileMatrixSet}/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=${layer}&STYLE=default&FORMAT=tiles&TILEMATRIXSET=${tileMatrixSet}&TILEMATRIX={level}&TILEROW={row}&TILECOL={col}&tk=${KEY}`;
+        }
+      }
+
+      const basemap = new Basemap({
+        baseLayers: [
+          new TianDiTuLayer({
+            id: "天地图矢量图",
+            title: "天地图矢量图",
+            urlTemplate: "http://t0.tianditu.gov.cn/vec_w/wmts",
+          }),
+        ],
+      });
+      const map = new Map({
+        basemap,
+      });
+
+      const view = new SceneView({
+        container: "viewDiv",
+        map: map,
+        zoom: 4,
+      });
+    </script>
+  </body>
+</html>

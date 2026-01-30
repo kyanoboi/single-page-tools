@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>纯CSS循环翻块动画</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 2rem;
+    }
+
+    .flip-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      perspective: 500px;
+    }
+
+    .flip-text {
+      display: inline-block;
+      padding: 10px 20px;
+      font-weight: bold;
+      background: #ff4500;
+      border-radius: 5px;
+      transform-origin: center;
+      position: absolute;
+      animation: flip 8s infinite;
+    }
+
+    /* 关键帧动画 */
+    @keyframes flip {
+      0%, 25% { transform: rotateX(0deg); opacity: 1; }
+      30%, 50% { transform: rotateX(90deg); opacity: 0; }
+      55%, 100% { transform: rotateX(180deg); opacity: 1; }
+    }
+
+    /* 让不同的文本依次出现 */
+    .flip-text:nth-child(1) { animation-delay: 0s; }
+    .flip-text:nth-child(2) { animation-delay: 2s; }
+    .flip-text:nth-child(3) { animation-delay: 4s; }
+    .flip-text:nth-child(4) { animation-delay: 6s; }
+  </style>
+</head>
+<body>
+
+  <div class="flip-container">
+    <span class="flip-text">Breaking News</span>
+    <span class="flip-text">新闻速递</span>
+    <span class="flip-text">最新消息</span>
+    <span class="flip-text">Hello World</span>
+  </div>
+
+</body>
+</html>

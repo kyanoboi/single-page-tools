@@ -1,0 +1,94 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>sketchViewModel</title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.27/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.27/"></script>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/SceneView",
+        "esri/layers/GraphicsLayer",
+        "esri/widgets/Sketch/SketchViewModel",
+      ], (Map, SceneView, GraphicsLayer, SketchViewModel) => {
+        const map = new Map({
+          basemap: "topo-vector",
+        });
+
+        const view = new SceneView({
+          container: "viewDiv",
+          map: map,
+        });
+
+        // define the GraphicsLayer
+        const gLayer = new GraphicsLayer({
+          elevationInfo: {
+            mode: "absolute-height", // default value
+          },
+        });
+
+        const polygonSymbol = {
+          type: "simple-fill", // autocasts as new SimpleFillSymbol()
+          color: "#F2BC94",
+          outline: {
+            // autocasts as new SimpleLineSymbol()
+            color: "#722620",
+            width: 3,
+          },
+        };
+
+        // define the SketchViewModel
+        const sketchVM = new SketchViewModel({
+          layer: gLayer,
+          view: view,
+          defaultCreateOptions: {
+            hasZ: true, // default value
+          },
+          defaultUpdateOptions: {
+            enableZ: true, // default value
+          },
+          polygonSymbol: polygonSymbol,
+        });
+
+        document.getElementById("button").addEventListener("click", () => {
+          sketchVM.create("circle", {
+            mode: "click",
+          });
+          // Listen to sketchViewModel's create event.
+          sketchVM.on("create", function (event) {
+            // check if the create event's state has changed to complete indicating
+            // the graphic create operation is completed.
+            if (event.state === "complete") {
+              console.log(event.graphic);
+            }
+          });
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    <button id="button">绘制圆</button>
+  </body>
+</html>

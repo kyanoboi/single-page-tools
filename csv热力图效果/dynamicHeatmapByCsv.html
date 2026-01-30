@@ -1,0 +1,282 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>heatmapByCsv</title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://ps.geoscene.cn/jsapi/4.27/esri/themes/light/main.css"
+    />
+    <script src="https://ps.geoscene.cn/jsapi/4.27/init.js"></script>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/views/SceneView",
+        "esri/layers/CSVLayer",
+        "esri/smartMapping/renderers/heatmap",
+      ], (Map, MapView, SceneView, CSVLayer, heatmapRendererCreator) => {
+        // Create a Map
+        const map = new Map();
+
+        // Make map view and bind it to the map
+        const view = new SceneView({
+          container: "viewDiv",
+          map: map,
+          qualityProfile: "high",
+        });
+        view.qualitySettings.heatmap.maxTotalNumberOfFeatures = 100000;
+        view.qualitySettings.heatmap.pixelRatio = 1;
+
+        window.view = view;
+
+        const field = "num";
+        const renderer = {
+          type: "heatmap",
+          field,
+          colorStops: [
+            // { ratio: 0, color: "rgba(255, 255, 255, 0)" },
+            // { ratio: 0.3, color: "rgb(255, 128, 0)" },
+            // { ratio: 0.5, color: "rgb(255, 255, 0)" },
+            // { ratio: 0.65, color: "rgb(141, 212, 0)" },
+            // { ratio: 1, color: "rgb(56, 168, 0)" },
+            // 初版四色
+            // { color: "rgba(255, 255, 255, 0)", ratio: 0 },
+            // //
+            // { color: "rgb(255, 128, 0)", ratio: 0.005 },
+            // { color: "rgb(255, 128, 0)", ratio: 0.01 },
+            // { color: "rgb(255, 128, 0)", ratio: 0.0925 },
+            // { color: "rgb(255, 128, 0)", ratio: 0.175 },
+            // //
+            // { color: "rgb(255, 255, 0)", ratio: 0.19 },
+            // { color: "rgb(255, 255, 0)", ratio: 0.34 },
+            // { color: "rgb(255, 255, 0)", ratio: 0.4225 },
+            // //
+            // { color: "rgb(141, 212, 0)", ratio: 0.48 },
+            // { color: "rgb(141, 212, 0)", ratio: 0.5875 },
+            // //
+            // { color: "rgb(56, 168, 0)", ratio: 0.65 },
+            // { color: "rgb(56, 168, 0)", ratio: 0.7525 },
+            // { color: "rgb(56, 168, 0)", ratio: 0.835 },
+            // { color: "rgb(56, 168, 0)", ratio: 0.9175 },
+            // { color: "rgb(56, 168, 0)", ratio: 1 },
+            // 八色
+            // { color: "rgba(255, 255, 255, 0)", ratio: 0 },
+            // { color: "rgba(255, 255, 255, 0)", ratio: 0.0018 },
+            // //
+            // { color: "rgb(95, 190, 0)", ratio: 0.0078 },
+            // //
+            // { color: "rgb(141, 212, 0)", ratio: 0.135 },
+            // //
+            // { color: "rgb(194, 233, 0)", ratio: 0.282 },
+            // //
+            // { color: "rgb(255, 255, 0)", ratio: 0.353 },
+            // //
+            // { color: "rgb(255, 191, 0)", ratio: 0.674 },
+            // //
+            // { color: "rgb(255, 128, 0)", ratio: 0.733 },
+            // //
+            // { color: "rgb(255, 64, 0)", ratio: 0.757 },
+            // //
+            // { color: "rgb(255, 0, 0)", ratio: 0.801 },
+            // { color: "rgb(255, 0, 0)", ratio: 1 },
+            { ratio: 0, color: "rgba(255, 255, 255, 0)" },
+            { ratio: 0.01, color: "rgb(95,190,0)" },
+            // { ratio: 0.01, color: "rgb(95,190,0)" },
+            // { ratio: 0.01, color: "rgb(95,190,0)" },
+            { ratio: 0.0925, color: "rgb(95,190,0)" },
+            { ratio: 0.105, color: "rgb(141,212,0)" },
+            { ratio: 0.2075, color: "rgb(141,212,0)" },
+            { ratio: 0.21, color: "rgb(194,233,0)" },
+            { ratio: 0.422, color: "rgb(194,233,0)" },
+            { ratio: 0.425, color: "rgb(255,255,0)" },
+            { ratio: 0.505, color: "rgb(255,255,0)" },
+            { ratio: 0.5875, color: "rgb(255,191,0)" },
+            { ratio: 0.67, color: "rgb(255,191,0)" },
+            { ratio: 0.8025, color: "rgb(255,128,0)" },
+            { ratio: 0.835, color: "rgb(255,128,0)" },
+            { ratio: 0.9175, color: "rgb(255,64,0)" },
+            { ratio: 1, color: "rgb(255,0,0)" },
+          ],
+          minDensity: 0,
+          maxDensity: 9.5,
+          referenceScale: 106275.57208261323,
+          radius: 18,
+        };
+        // const url = "https://ps.geoscene.cn/apps/T-CIMPhase3/无锡线网进站.csv";
+        // addCsvLayer(url);
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = ".csv";
+        fileInput.addEventListener("change", function (event) {
+          const file = event.target.files[0];
+          const reader = new FileReader();
+
+          reader.onload = async function (event) {
+            const csvString = event.target.result;
+            view.map.removeAll();
+            addCsvLayer(csvString);
+          };
+
+          reader.readAsDataURL(file);
+        });
+        // 将 fileInput 添加到页面上，供用户选择本地 CSV 文件
+        document.body.appendChild(fileInput);
+
+        // 监听参数改变
+        document
+          .getElementById("maxDensity")
+          .addEventListener("change", (e) => {
+            changeRenderer({ maxDensity: e.target.value });
+          });
+        document
+          .getElementById("minDensity")
+          .addEventListener("change", (e) => {
+            changeRenderer({ minDensity: e.target.value });
+          });
+        document.getElementById("radius").addEventListener("change", (e) => {
+          changeRenderer({ radius: e.target.value });
+        });
+
+        document
+          .getElementById("referenceScale")
+          .addEventListener("change", (e) => {
+            changeRenderer({ referenceScale: e.target.value });
+          });
+
+        const colors = [
+          [95, 190, 0],
+          [141, 212, 0],
+          [194, 233, 0],
+          [255, 255, 0],
+          [255, 191, 0],
+          [255, 128, 0],
+          [255, 64, 0],
+          [255, 0, 0],
+        ];
+
+        function getColorByRatio({ ratio }) {
+          const colorIndex = Math.floor(ratio * (colors.length - 1));
+          console.log(colorIndex);
+          if (ratio === 0) {
+            return { ratio, color: `rgba(255, 255, 255, 0)` };
+          }
+          if (colorIndex === colors.length - 1) {
+            return { ratio, color: `rgb(${colors[colorIndex].join(",")})` };
+          }
+          const startColor = colors[colorIndex];
+          const color = [
+            Math.round(startColor[0]),
+            Math.round(startColor[1]),
+            Math.round(startColor[2]),
+          ];
+
+          return { ratio, color: `rgb(${color.join(",")})` };
+        }
+
+        async function addCsvLayer(url) {
+          const csvLayer = new CSVLayer({
+            id: "heatmap-csv",
+            url: url,
+            // longitudeField: "X",
+            // latitudeField: "Y",
+            // renderer,
+          });
+          let heatmapParams = {
+            layer: csvLayer,
+            view: view,
+            field: document.getElementById("field").value || field,
+            // radius: 12,
+          };
+          const {
+            renderer: createR,
+            statistics,
+            ...rest
+          } = await heatmapRendererCreator.createRenderer(heatmapParams);
+          console.log(createR, statistics, rest);
+          csvLayer.renderer = createR;
+          // csvLayer.renderer.maxDensity = 99;
+          csvLayer.renderer.referenceScale = 270000; //145000
+          console.log(JSON.parse(JSON.stringify(createR.colorStops)));
+          const colorStops = createR.colorStops.map(getColorByRatio);
+          console.log(colorStops);
+          csvLayer.renderer.colorStops = renderer.colorStops;
+          // csvLayer.renderer.maxDensity = 120;
+          csvLayer.renderer.radius = 11;
+          // csvLayer.renderer.minDensity = 1;
+          csvLayer.renderer.minDensity = statistics.summaryStatistics.min;
+          // csvLayer.renderer = {
+          //   // ...renderer,
+          //   ...createR,
+
+          //   // minDensity: createR.minDensity,
+          //   // maxDensity: createR.maxDensity,
+          //   // radius: createR.radius,
+          // };
+          document.getElementById("maxDensity").value =
+            csvLayer.renderer.maxDensity;
+          document.getElementById("minDensity").value =
+            csvLayer.renderer.minDensity;
+          document.getElementById("radius").value = csvLayer.renderer.radius;
+          document.getElementById("referenceScale").value =
+            csvLayer.renderer.referenceScale;
+          view.map.add(csvLayer);
+        }
+
+        function changeRenderer(prop) {
+          const layer = view.map.findLayerById("heatmap-csv");
+          if (layer) {
+            console.log(layer, layer.renderer);
+            // layer.renderer = {
+            //   // ...renderer,
+            //   ...{
+            //     maxDensity: document.getElementById("maxDensity").value,
+            //     minDensity: document.getElementById("minDensity").value,
+            //     radius: document.getElementById("radius").value,
+            //     // referenceScale: document.getElementById("referenceScale").value,
+            //   },
+            //   ...prop,
+            // };
+            layer.renderer.maxDensity =
+              document.getElementById("maxDensity").value;
+            layer.renderer.minDensity =
+              document.getElementById("minDensity").value;
+            layer.renderer.radius = document.getElementById("radius").value;
+            layer.renderer.referenceScale =
+              document.getElementById("referenceScale").value;
+          }
+        }
+      });
+      // view.scle = 20289.920154956708
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <label>最大密度：</label>
+    <input type="text" id="maxDensity" value="0" />
+    <label>最小密度：</label>
+    <input type="text" id="minDensity" value="0" />
+    <label>半径：</label>
+    <input type="text" id="radius" value="0" />
+    <label>参考比例：</label>
+    <input type="text" id="referenceScale" value="0" />
+    <label>权重字段：</label>
+    <input type="text" id="field" />
+  </body>
+</html>

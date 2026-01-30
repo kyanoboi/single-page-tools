@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="52px" height="52px" viewBox="0 0 52 52" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>蓝色大</title>
+    <defs>
+        <linearGradient x1="17.253498%" y1="15.6455523%" x2="79.2370196%" y2="93.9544285%" id="linearGradient-1">
+            <stop stop-color="#97EAFF" offset="0%"></stop>
+            <stop stop-color="#65D8F5" offset="35.2545892%"></stop>
+            <stop stop-color="#1585A1" offset="72.809222%"></stop>
+            <stop stop-color="#0C7D9A" offset="100%"></stop>
+        </linearGradient>
+        <filter x="-46.2%" y="-46.2%" width="192.3%" height="192.3%" filterUnits="objectBoundingBox" id="filter-2">
+            <feGaussianBlur stdDeviation="2" in="SourceGraphic"></feGaussianBlur>
+        </filter>
+    </defs>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="切图" transform="translate(-1007.000000, -1256.000000)">
+            <g id="蓝色大" transform="translate(1007.000000, 1256.000000)">
+                <circle id="椭圆形" fill="url(#linearGradient-1)" cx="26" cy="26" r="26"></circle>
+                <circle id="椭圆形" fill="#FFFFFF" filter="url(#filter-2)" cx="16.25" cy="14.625" r="6.5"></circle>
+            </g>
+        </g>
+    </g>
+</svg>

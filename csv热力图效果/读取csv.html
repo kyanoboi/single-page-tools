@@ -1,0 +1,69 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>csv文件读取</title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.27/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.27/"></script>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/views/SceneView",
+        "esri/layers/VectorTileLayer",
+        "esri/layers/SceneLayer",
+        "esri/widgets/LayerList",
+      ], (Map, MapView, SceneView, VectorTileLayer, SceneLayer, LayerList) => {
+        fetch(
+          "https://www.cmecc.com/data/1584365592936128514/reachability_stations/1号线.csv",
+          {
+            method: "get",
+            // headers: {
+            //   // 'Access-Control-Allow-Origin': '*',
+            //   "content-type": "text/csv;charset=UTF-8",
+            // },
+            // mode: "no-cors",
+          }
+        )
+          .then((response) => {
+            console.log(response);
+            // if (!response.ok) {
+            //   throw new Error("Network response was not ok");
+            // }
+            return response.text();
+          })
+          .then((csvData) => {
+            // 成功获取数据
+            console.log(csvData);
+            // 这里可以将 csvData 传递给你的解析函数进行处理
+          })
+          .catch((error) => {
+            // 处理请求失败的情况
+            console.error("Failed to fetch CSV file.", error);
+          });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+  </body>
+</html>

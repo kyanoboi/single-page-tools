@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <title>共享webStlye前端调用测试</title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+      #layerdiv {
+        /* padding: 5px 15px;
+				width: 200px; */
+        /* position: fixed;
+				left: 10px;
+				top: 10px; */
+        background-color: rgba(38, 38, 38, 0.5);
+        z-index: 998;
+        border-radius: 5px;
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://js.geoscene.cn/4.25/geoscene/themes/light/main.css"
+    />
+    <script src="https://js.geoscene.cn/4.25/"></script>
+
+    <script>
+      require([
+        "geoscene/Map",
+        "geoscene/config",
+        "geoscene/WebScene",
+        "geoscene/views/SceneView",
+        "geoscene/geometry/Point",
+        "geoscene/symbols/WebStyleSymbol",
+        "geoscene/renderers/UniqueValueRenderer",
+        "geoscene/renderers/visualVariables/VisualVariable",
+        "geoscene/renderers/visualVariables/SizeVariable",
+        "geoscene/renderers/visualVariables/RotationVariable",
+        "geoscene/layers/FeatureLayer",
+        "geoscene/layers/SceneLayer",
+        "geoscene/layers/TileLayer",
+        "geoscene/layers/ElevationLayer",
+        "geoscene/widgets/LayerList",
+        "geoscene/core/Collection",
+        "geoscene/core/reactiveUtils",
+      ], (
+        Map,
+        geosceneConfig,
+        WebScene,
+        SceneView,
+        Point,
+        WebStyleSymbol,
+        UniqueValueRenderer,
+        VisualVariable,
+        SizeVariable,
+        RotationVariable,
+        FeatureLayer,
+        SceneLayer,
+        TileLayer,
+        ElevationLayer,
+        LayerList,
+        Collection,
+        reactiveUtils
+      ) => {
+        //设置portal的url，如果不设置默认为“http://www.arcgis.com/”
+        // geosceneConfig.portalUrl = "https://server.giscloud.cn/geoscene";
+        // // Load webscene and display it in a SceneView
+        // const webscene = new WebScene({
+        //   portalItem: {
+        //     id: "3385401dba4a490a9e60749fd1d7f649",
+        //   },
+        // });
+        const view = new SceneView({
+          container: "viewDiv",
+          //   map: webscene,
+          map: new Map({
+            basemap: "tianditu-vector",
+
+            // A ground preset containing a single elevation layer, sourced from
+            // https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer
+            // ground: "world-elevation",
+            spatialReference: {
+              wkid: 4490,
+            },
+          }),
+          qualityProfile: "high",
+        });
+
+        let treestyleurl =
+          "http://localhost/0e57b8bbcdad47ca99b7f971987e7be0/data.json";
+        // "https://solutions.geoscene.cn/webStyleTest/0e57b8bbcdad47ca99b7f971987e7be0/data.json";
+        //从服务地址加载样式
+        let symbol1 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "BY_001_G_04_04_11_A",
+        });
+        let symbol2 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "LS_001_G_06_04_04_B",
+        });
+        let symbol3 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "QX_001_G_02_02_02_A",
+        });
+        let symbol4 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "QX_002_G_02_02_01_A",
+        });
+        let symbol5 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "TR_005_G_10_10_15_A",
+        });
+        // let symbol6 = new WebStyleSymbol({
+        //   styleUrl: treestyleurl,
+        //   name: "TR_008_G_06_06_14_A",
+        // });
+        let symbol7 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "TR_015_G_10_10_15_A",
+        });
+        let symbol8 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "TR_019_G_09_10_12_A",
+        });
+        let symbol9 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "TR_024_G_07_07_08_A",
+        });
+        let symbol10 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "TR_028_G_06_05_07_A",
+        });
+        // let symbol11 = new WebStyleSymbol({
+        //   styleUrl: treestyleurl,
+        //   name: "TR_035_G_14_13_12_A",
+        // });
+        let symbol12 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "ZJ_001_G_06_06_05_B",
+        });
+        let symbol13 = new WebStyleSymbol({
+          styleUrl: treestyleurl,
+          name: "ZJ_011_G_05_05_09_B",
+        });
+        //配置唯一值渲染
+        let prenderer = new UniqueValueRenderer({
+          field: "filename",
+          defaultSymbol: {
+            type: "simple-marker",
+          },
+          uniqueValueInfos: [
+            {
+              value: "BY_001_G_04_04_11_A",
+              symbol: symbol1,
+            },
+            {
+              value: "LS_001_G_06_04_04_B",
+              symbol: symbol2,
+            },
+            {
+              value: "QX_001_G_02_02_02_A",
+              symbol: symbol3,
+            },
+            {
+              value: "QX_002_G_02_02_01_A",
+              symbol: symbol4,
+            },
+            {
+              value: "TR_005_G_10_10_15_A",
+              symbol: symbol5,
+            },
+            // {
+            //   value: "TR_008_G_06_06_14_A",
+            //   symbol: symbol6,
+            // },
+            {
+              value: "TR_015_G_10_10_15_A",
+              symbol: symbol7,
+            },
+            {
+              value: "TR_019_G_09_10_12_A",
+              symbol: symbol8,
+            },
+            {
+              value: "TR_024_G_07_07_08_A",
+              symbol: symbol9,
+            },
+            {
+              value: "TR_028_G_06_05_07_A",
+              symbol: symbol10,
+            },
+            // {
+            //   value: "TR_035_G_14_13_12_A",
+            //   symbol: symbol11,
+            // },
+            {
+              value: "ZJ_001_G_06_06_05_B",
+              symbol: symbol12,
+            },
+            {
+              value: "ZJ_011_G_05_05_09_B",
+              symbol: symbol13,
+            },
+          ],
+          visualVariables: [
+            new SizeVariable({
+              axis: "height",
+              field: "c",
+              valueUnit: "meters",
+            }),
+            new SizeVariable({
+              axis: "width",
+              field: "k",
+              valueUnit: "meters",
+            }),
+            new SizeVariable({
+              axis: "depth",
+              field: "g",
+              valueUnit: "meters",
+            }),
+            new RotationVariable({
+              axis: "heading",
+              field: "yaw",
+              rotationType: "geographic",
+            }),
+          ],
+        });
+        //从服务地址加载要素图层
+
+        let tree_layer = new FeatureLayer({
+          url: "https://ztmap.geoscene.cn/server/rest/services/Hosted/tree_test/FeatureServer/0",
+          renderer: prenderer,
+          maxScale: 0,
+          minScale: 0,
+        });
+        // webscene.add(tree_layer);
+
+        window.view = view;
+
+        view.when(function () {
+          //图层控件
+          var layerList = new LayerList({
+            view: view,
+          });
+          view.ui.add(layerList, "top-right");
+
+          view.map.add(tree_layer);
+          //解决树无故消失问题
+          view.whenLayerView(tree_layer).then(function (featureLayerView) {
+            featureLayerView.maximumNumberOfFeatures = 10000;
+            view.goTo(tree_layer.fullExtent);
+          });
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+  </body>
+</html>

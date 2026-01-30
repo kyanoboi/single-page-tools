@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Display GeoJSON</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.26/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.26/"></script>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/GeoJSONLayer",
+        "esri/geometry/SpatialReference",
+      ], function (Map, MapView, GeoJSONLayer, SpatialReference) {
+        // Load the projection module
+
+        // Define the GeoJSON data
+        const url = "./bounds_2dmap.geojson";
+
+        const res = fetch(url).then((response) => {
+          return response.json().then((res) => {
+            console.log(res);
+            const features = res.features;
+            const [mergeFeatureList, restFeatures] = features.reduce(
+              (acc, cur) => {
+                if (["婺城区", "开发区"].includes(cur.properties.name)) {
+                  if (!acc[0]) {
+                    acc[0] = [];
+                  }
+                  acc[0].push(cur);
+                } else {
+                  if (!acc[1]) {
+                    acc[1] = [];
+                  }
+                  acc[1].push(cur);
+                }
+                return acc;
+              },
+              []
+            );
+            const geojson = {
+              ...res,
+              features: [
+                ...restFeatures,
+                mergeFeatures(mergeFeatureList[0], mergeFeatureList),
+              ],
+            };
+            console.log(geojson);
+            // return {
+            //   ...res,
+            //   features: [
+            //     ...restFeatures,
+            //     mergeFeatures(mergeFeatureList[0], mergeFeatureList),
+            //   ],
+            // };
+            // Define the spatial reference
+            // create a new blob from geojson featurecollection
+            const blob = new Blob([JSON.stringify(res)], {
+              type: "application/json",
+            });
+
+            // URL reference to the blob
+            const newUrl = URL.createObjectURL(blob);
+            const spatialReference = new SpatialReference({ wkid: 4549 });
+
+            const template = {
+              title: "行政信息",
+              content: "{name}",
+            };
+
+            // Create a GeoJSONLayer and set its URL
+            const geojsonLayer = new GeoJSONLayer({
+              url: newUrl,
+              popupTemplate: template,
+            });
+
+            const map = new Map({
+              basemap: "gray-vector",
+              layers: [geojsonLayer],
+            });
+
+            const view = new MapView({
+              container: "viewDiv",
+              map: map,
+              zoom: 8,
+            });
+
+            window.view = view;
+          });
+        });
+
+        function mergeFeatures(targetFeature, features) {
+          console.log(targetFeature, features);
+          return {
+            ...targetFeature,
+            geometry: {
+              ...targetFeature.geometry,
+              coordinates: [
+                [
+                  ...targetFeature.geometry.coordinates.flat(),
+                  ...features
+                    .filter((item) => item.id !== targetFeature.id)
+                    .map((item) => item.geometry.coordinates)
+                    .flat(2),
+                ],
+              ],
+            },
+          };
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // main.js
+      const worker = new Worker("worker.js");
+
+      // 向 Worker 发送一个对象
+      worker.postMessage({ number: 5 });
+
+      // 监听 Worker 返回的对象
+      worker.onmessage = function (event) {
+        const result = event.data;
+        console.log("平方:", result.squared); // 输出: 25
+        console.log("翻倍:", result.doubled); // 输出: 10
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,232 @@
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>
+    IntegratedMeshLayer modification | Sample | ArcGIS Maps SDK for JavaScript
+    4.30
+  </title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
+  <script src="https://js.arcgis.com/4.30/"></script>
+
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/views/SceneView",
+      "esri/layers/BaseTileLayer",
+      "esri/layers/MapImageLayer",
+      "esri/geometry/Extent",
+      "esri/geometry/projection",
+      "esri/geometry/SpatialReference",
+      "esri/layers/support/TileInfo",
+    ], (
+      SceneView,
+      BaseTileLayer,
+      MapImageLayer,
+      Extent,
+      projection,
+      SpatialReference,
+      TileInfo,
+    ) => {
+
+      /**
+       * 
+       * @param {4490 | 4326 | 3857 | 102100} wkid 
+       * @param {number} maxLevel 
+       */
+      function getTileInfo(wkid, maxLevel = 18) {
+
+        switch (wkid) {
+          case 4490:
+            return new TileInfo({
+              size: [256, 256],
+              dpi: 96,
+              compressionQuality: 0,
+              origin: {
+                type: 'point',
+                x: -180,
+                y: 90,
+                spatialReference: { wkid: 4490 }
+              },
+              spatialReference: { wkid: 4490 },
+              lods: new Array(maxLevel).fill(0).map((e, i) => ({
+                level: i,
+                resolution: Math.pow(0.5, i) * 0.703125,
+                scale: Math.pow(0.5, i) * 295828763.79585469
+              }))
+            })
+          case 4326:
+            return new TileInfo({
+              size: [256, 256],
+              dpi: 96,
+              compressionQuality: 0,
+              origin: {
+                type: 'point',
+                x: -180,
+                y: 90,
+                spatialReference: SpatialReference.WGS84
+              },
+              spatialReference: SpatialReference.WGS84,
+              lods: new Array(maxLevel).fill(0).map((e, i) => ({
+                level: i,
+                resolution: Math.pow(0.5, i) * 0.703125,
+                scale: Math.pow(0.5, i) * 295829355.454566
+              })
+              )
+            })
+          case 3857:
+          case 102100:
+            return new TileInfo({
+              size: [256, 256],
+              dpi: 96,
+              compressionQuality: 0,
+              origin: {
+                type: 'point',
+                x: -20037508.342787,
+                y: 20037508.342787,
+                spatialReference: SpatialReference.WebMercator
+              },
+              spatialReference: SpatialReference.WebMercator,
+              lods: new Array(maxLevel + 1).fill(0).map((e, i) => ({
+                level: i,
+                resolution: Math.pow(0.5, i) * 156543.033928,
+                scale: Math.pow(0.5, i) * 591657527.591555
+              }))
+            })
+        }
+      }
+
+      const TileWidth = 256
+
+      /**
+       * 
+       * 在线切片图层，基于：动态服务的 ExportMap 方法实现，可精确控制每个图层的样式，适用于快速发布服务测试
+       * 
+       * @param {object} param0 
+       * @param {string} param0.url 图层URL，必传，服务必须带有 ExportMap 方法，
+       * @param {4490 | 4326 | 3857 | 102000} param0.wkid 上图的参考系，必传，将依此创建切片方案
+       * @param {__esri.TileInfo} param0.tileInfo 自定义切片方案，如非4490、3857、4326时用到
+       * @param {object} param0.customParameters 其他传参
+       * @param {"png" | "png8" | "png24" | "png32" | "jpg" | "pdf" | "bmp" | "gif" | "svg" | "pngjpg"} param0.imageFormat 返回的图片格式，默认按服务配置为准
+       * @param {boolean} param0.imageTransparency 是否为透明图片，默认按服务配置为准
+       * @param {number} param0.opacity 透明度
+       * @param {boolean} param0.visible 是否可见
+       * @param {number} param0.maxLodLevel 最大显示层级，默认为20
+       * @param {"average" | "color-burn" | "color-dodge" | "color" | "darken" | "destination-atop" | "destination-in" | "destination-out" | "destination-over" | "difference" | "exclusion" | "hard-light" | "hue" | "invert" | "lighten" | "lighter" | "luminosity" | "minus" | "multiply" | "normal" | "overlay" | "plus" | "reflect" | "saturation" | "screen" | "soft-light" | "source-atop" | "source-in" | "source-out" | "vivid-light" | "xor"} param0.blendMode 与底图的混合方式
+       * @returns {__esri.TileLayer}
+       * 
+       * @example 
+       * sceneView.map.add(MapImageTileLayer({
+       *   url: 'https://server.geoscene.cn/server/rest/services/XXX/MapServer',
+       *   wkid: 4490,
+       * }))
+       */
+      function MapImageTileLayer({
+        url, wkid, customParameters = {},
+        tileInfo: inputTileInfo,
+        opacity = 1,
+        visible = true,
+        imageFormat,
+        imageTransparency,
+        blendMode,
+        maxLodLevel = 20,
+      }) {
+
+        const tileInfo = inputTileInfo || getTileInfo(wkid, maxLodLevel)
+
+        const options = {
+          url: url,
+          customParameters: customParameters,
+          dpi: 96,
+        }
+
+        if (imageFormat) options.imageFormat = imageFormat
+        if (typeof imageTransparency === 'boolean') options.imageTransparency = imageTransparency
+
+        const layer = new MapImageLayer(options)
+
+        const BaseLayer = BaseTileLayer.createSubclass({
+          isGeoScene: true,
+          type_geoscene: 'map-image-tile',
+          load: function () {
+            this.addResolvingPromise(layer.load().then(() => {
+              const { fullExtent } = layer
+
+              if (fullExtent?.spatialReference.wkid === wkid) {
+                this.fullExtent = layer.fullExtent
+
+                return Promise.resolve(true)
+              } else {
+                return projection.load()
+              }
+            }).then((isResolve) => {
+              if (isResolve === true) return
+
+              const outExtent = projection.project(layer.fullExtent, { wkid })
+              this.fullExtent = outExtent
+            }))
+
+            return this
+          },
+          fetchTile: function (level, row, col, options) {
+
+            /** @type {AbortSignal} */
+            const signal = options && options.signal
+
+            const [xmin, ymin, xmax, ymax] = this.getTileBounds(level, row, col)
+
+            return layer.fetchImage(new Extent({
+              xmin, ymin, xmax, ymax,
+              spatialReference: this.spatialReference
+            }), TileWidth, TileWidth, {
+              signal: signal
+            })
+          },
+        })
+
+        /**
+         * @type {BaseTileLayer}
+         */
+        return new BaseLayer({
+          opacity,
+          visible,
+          blendMode,
+          tileInfo: tileInfo,
+          spatialReference: tileInfo.spatialReference,
+        })
+      }
+
+      const view = new SceneView({
+        container: "viewDiv",
+        map: {
+          layers: [
+            MapImageTileLayer({
+              url: 'https://cim.geoscene.cn/server/rest/services/%E6%88%BF%E5%B1%8B/MapServer',
+              wkid: 4490,
+              maxLodLevel: 24,
+            })
+          ]
+        },
+      });
+    })
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv">
+  </div>
+</body>
+
+</html>

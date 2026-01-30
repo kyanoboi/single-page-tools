@@ -1,0 +1,107 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>
+      Intro to SceneView - Create a 3D map | Sample | ArcGIS Maps SDK for
+      JavaScript 4.30
+    </title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.30/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.30/"></script>
+
+    <script>
+      require(["esri/Map", "esri/views/SceneView"], (Map, SceneView) => {
+        const map = new Map({
+          basemap: "topo-3d",
+          ground: "world-elevation",
+        });
+
+        const sceneView = new SceneView({
+          container: "viewDiv",
+          map: map,
+          camera: {
+            position: {
+              spatialReference: {
+                latestWkid: 3857,
+                wkid: 102100,
+              },
+              x: -11262192.883555487,
+              y: 2315246.351026253,
+              z: 18161244.728082635,
+            },
+            heading: 0,
+            tilt: 0.49,
+          },
+        });
+
+        sceneView.when().then(() => {
+          addCameraKeyDownEvents(sceneView);
+          window.view = sceneView;
+        });
+
+        function addCameraKeyDownEvents(sceneView) {
+          const offset = 10;
+          const factor = {
+            arrowright(camera, offsetCos, offsetSin) {
+              camera.position.x += offsetCos;
+              camera.position.y -= offsetSin;
+            },
+            arrowleft(camera, offsetCos, offsetSin) {
+              camera.position.x -= offsetCos;
+              camera.position.y += offsetSin;
+            },
+            arrowup(camera, offsetCos, offsetSin) {
+              camera.position.x += offsetSin;
+              camera.position.y += offsetCos;
+            },
+            arrowdown(camera, offsetCos, offsetSin) {
+              camera.position.x -= offsetSin;
+              camera.position.y -= offsetCos;
+            },
+            c(camera) {
+              camera.position.z -= offset;
+            },
+            e(camera) {
+              camera.position.z += offset;
+            },
+          };
+          sceneView.on("key-down", (e) => {
+            const lowerString = e.key.toLocaleLowerCase();
+            if (Object.keys(factor).includes(lowerString)) {
+              e.stopPropagation();
+              const newCamera = sceneView.camera.clone();
+              const angle = (newCamera.heading / 180) * Math.PI;
+              const offsetCos = Math.cos(angle) * offset;
+              const offsetSin = Math.sin(angle) * offset;
+              factor[lowerString](newCamera, offsetCos, offsetSin);
+              sceneView.goTo(newCamera, {
+                speedFactor: 1,
+              });
+            }
+          });
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+  </body>
+</html>

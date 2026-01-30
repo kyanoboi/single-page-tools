@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>addGeoJsonToMap</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.26/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.26/"></script>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/GeoJSONLayer",
+        "esri/geometry/SpatialReference",
+        "esri/geometry/geometryEngine",
+        "esri/Graphic",
+      ], function (
+        Map,
+        MapView,
+        GeoJSONLayer,
+        SpatialReference,
+        geometryEngine,
+        Graphic
+      ) {
+        // Load the projection module
+
+        // Define the GeoJSON data
+        const url = "./bounds_2dmap.geojson";
+
+        // Define the spatial reference
+        const spatialReference = new SpatialReference({
+          wkid: 4549,
+        });
+
+        const template = {
+          title: "行政区",
+          content: "{name}",
+        };
+
+        // Create a GeoJSONLayer and set its URL
+        const geojsonLayer = new GeoJSONLayer({
+          url: url,
+          // spatialReference: spatialReference,
+          // 开启图层编辑
+          editingEnabled: true,
+          popupTemplate: template,
+        });
+
+        const map = new Map({
+          basemap: "gray-vector",
+          layers: [geojsonLayer],
+        });
+
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          zoom: 8,
+        });
+
+        window.view = view;
+
+        // 获取要素
+        view.whenLayerView(geojsonLayer).then(function (layerView) {
+          geojsonLayer.queryFeatures().then(function (results) {
+            const features = results.features;
+
+            // 假设要合并的两个要素是第一个和第二个
+            const feature1 = features[0];
+            const feature2 = features[1];
+            const feature3 = features[2];
+
+            // 获取要素的几何
+            const geometry1 = feature1.geometry;
+            const geometry2 = feature2.geometry;
+            const geometry3 = feature3.geometry;
+
+            // 使用geometryEngine合并几何
+            const unionGeometry = geometryEngine.union([
+              geometry1,
+              geometry2,
+              geometry3,
+            ]);
+
+            // 创建一个新的Graphic来表示合并后的要素
+            const newFeature = new Graphic({
+              geometry: unionGeometry,
+              attributes: {
+                // 可以根据需要设置新的属性
+                ...feature1.attributes,
+              },
+            });
+
+            // 将新要素添加到图层
+            geojsonLayer
+              .applyEdits({
+                addFeatures: [newFeature],
+                deleteFeatures: [feature1, feature2, feature3],
+              })
+              .then(function (editsResult) {
+                console.log(
+                  "Features added: ",
+                  editsResult.addFeatureResults.length
+                );
+                console.log(
+                  "Features deleted: ",
+                  editsResult.deleteFeatureResults.length
+                );
+              });
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

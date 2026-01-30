@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <script>
+    window.pageStartTime = Date.now();
+  </script>
+  <body>
+    <div id="box">这是一个渲染容器·</div>
+  </body>
+  <script>
+    // 模拟一个包含大量数据的数组
+    const largeDataSet = Array.from(
+      { length: 100000 },
+      (_, index) => `Item ${index + 1}`
+    );
+
+    // 通过requestIdleCallback逐步渲染数据
+    const renderItems = (deadline) => {
+      while (
+        (deadline.timeRemaining() > 0 || deadline.didTimeout) &&
+        largeDataSet.length > 0
+      ) {
+        const chunk = largeDataSet.splice(0, 10); // 每次处理10条数据
+        render(chunk); // 渲染这个数据块
+      }
+
+      if (largeDataSet.length > 0) {
+        requestIdleCallback(renderItems);
+      }
+    };
+
+    const render = (chunk) => {
+      chunk.map((i) => {
+        let p = document.createElement("p");
+        p.textContent = i;
+        document.getElementById("box").appendChild(p);
+      });
+    };
+
+    // 启动渲染
+    requestIdleCallback(renderItems); // 约为10
+    // render(largeDataSet); // 约为100
+
+    function load() {
+      window.firstScreen = Date.now();
+    }
+    load();
+    window.onload = function () {
+      // 首屏时间
+      console.log(window.firstScreen - window.pageStartTime);
+    };
+  </script>
+</html>

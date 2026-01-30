@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>加载天地图</title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://ps.geoscene.cn/jsapi/4.27/esri/themes/light/main.css"
+    />
+    <script src="https://ps.geoscene.cn/jsapi/4.27/init.js"></script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <script>
+      require([
+        "esri/Map",
+        "esri/layers/TileLayer",
+        "esri/Basemap",
+        "esri/views/SceneView",
+      ], (Map, TileLayer, Basemap, SceneView) => {
+        let layer = new TileLayer({
+          url: "http://ps.geoscene.cn/tianditu/xmap/default/vea/w/dark/MapServer",
+        });
+
+        const map = new Map({
+          basemap: new Basemap({ baseLayers: [layer] }),
+        });
+
+        const view = new SceneView({
+          container: "viewDiv",
+          map: map,
+          zoom: 12,
+          center: [102.74, 25.0],
+        });
+      });
+    </script>
+  </body>
+</html>

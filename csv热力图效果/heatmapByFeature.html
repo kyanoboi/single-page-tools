@@ -1,0 +1,164 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+
+    <title>
+      Intro to heatmap | Sample | ArcGIS Maps SDK for JavaScript 4.29
+    </title>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.27/esri/themes/light/main.css"
+    />
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <script src="https://js.arcgis.com/4.27/"></script>
+
+    <script src="./data.js"></script>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/layers/FeatureLayer",
+        "esri/views/SceneView",
+        "esri/widgets/Legend",
+        "esri/geometry/Point",
+        "esri/smartMapping/renderers/heatmap",
+      ], (
+        Map,
+        FeatureLayer,
+        SceneView,
+        Legend,
+        Point,
+        heatmapRendererCreator
+      ) => {
+        const template = {
+          title: "{place}",
+          content: "Magnitude {mag} {type} hit {place} on {time}.",
+        };
+
+        const baseRenderer = {
+          type: "heatmap",
+          field: "value",
+          colorStops: [
+            { ratio: 0, color: "rgba(255, 255, 255, 0)" },
+            { ratio: 0.01, color: "rgb(95,190,0)" },
+            { ratio: 0.0925, color: "rgb(95,190,0)" },
+            { ratio: 0.105, color: "rgb(141,212,0)" },
+            { ratio: 0.2075, color: "rgb(141,212,0)" },
+            { ratio: 0.21, color: "rgb(194,233,0)" },
+            { ratio: 0.422, color: "rgb(194,233,0)" },
+            { ratio: 0.425, color: "rgb(255,255,0)" },
+            { ratio: 0.505, color: "rgb(255,255,0)" },
+            { ratio: 0.5875, color: "rgb(255,191,0)" },
+            { ratio: 0.67, color: "rgb(255,191,0)" },
+            { ratio: 0.8025, color: "rgb(255,128,0)" },
+            { ratio: 0.835, color: "rgb(255,128,0)" },
+            { ratio: 0.9175, color: "rgb(255,64,0)" },
+            { ratio: 1, color: "rgb(255,0,0)" },
+          ],
+        };
+
+        const map = new Map({
+          basemap: "gray-vector",
+        });
+
+        const view = new SceneView({
+          container: "viewDiv",
+          map: map,
+          qualityProfile: "high",
+          spatialReference: { latestWkid: 3857, wkid: 102100 },
+        });
+        view.qualitySettings.heatmap.maxTotalNumberOfFeatures = 100000;
+        view.qualitySettings.heatmap.pixelRatio = 1;
+
+        const layer = new FeatureLayer({
+          source: points.map(({ fnid, geometry, ratio, value }) => {
+            const regex = /POINT \(([^ ]+) ([^)]+)\)/;
+            const match = geometry.match(regex);
+            const [longitude, latitude] = [match[1], match[2]];
+            return {
+              geometry: new Point({
+                longitude,
+                latitude,
+                spatialReference: { wkid: 4326 },
+              }),
+              attributes: {
+                fnid,
+                ratio,
+                value,
+                ObjectID: +fnid,
+              },
+            };
+          }),
+          visible: true,
+          fields: [
+            {
+              name: "ObjectID",
+              alias: "objectid",
+              type: "oid",
+            },
+            {
+              name: "value",
+              type: "double",
+            },
+            {
+              name: "ratio",
+              type: "double",
+            },
+            {
+              name: "fnid",
+              type: "integer",
+            },
+          ],
+          objectIdField: "ObjectID",
+          outFields: ["*"],
+        });
+        layer.queryExtent().then(({ extent }) => {
+          console.log(extent);
+          //   view.goTo(extent).then(() => {
+          const heatmapParams = { layer, view, field: "value" };
+          heatmapRendererCreator
+            .createRenderer(heatmapParams)
+            .then(({ renderer, statistics }) => {
+              const setting = {
+                maxDensity: renderer.maxDensity,
+                minDensity: renderer.minDensity,
+                radius: 11,
+                referenceScale: 270000,
+              };
+              layer.renderer = { ...baseRenderer, ...setting };
+              console.log(layer.renderer);
+              view.map.add(layer);
+              // view.goTo(layer.fullExtent);
+              view.ui.add(
+                new Legend({
+                  view: view,
+                }),
+                "bottom-left"
+              );
+            });
+          //   });
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+  </body>
+</html>

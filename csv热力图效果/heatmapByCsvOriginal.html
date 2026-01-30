@@ -1,0 +1,220 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>heatmapByCsv</title>
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+      .wrap {
+        position: absolute;
+        width: 100%;
+        background-color: #fff;
+        bottom: 0;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://solutions.geoscene.cn/jsapi/4.29/esri/themes/light/main.css"
+    />
+    <script src="https://solutions.geoscene.cn/jsapi/4.29/init.js"></script>
+
+    <script>
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/views/SceneView",
+        "esri/layers/CSVLayer",
+        "esri/smartMapping/renderers/heatmap",
+      ], (Map, MapView, SceneView, CSVLayer, heatmapRendererCreator) => {
+        // Create a Map
+        const map = new Map({
+          basemap: "gray-vector",
+        });
+
+        // Make map view and bind it to the map
+        const view = new SceneView({
+          container: "viewDiv",
+          map: map,
+          qualityProfile: "high",
+        });
+        view.ui._removeComponents(["attribution"]);
+
+        // qualitySettings
+        view.qualitySettings.heatmap.maxTotalNumberOfFeatures = 100000;
+        view.qualitySettings.heatmap.pixelRatio = 1;
+
+        window.view = view;
+
+        const field = "new_distance";
+
+        const renderer = {
+          type: "heatmap",
+          field,
+          colorStops: [
+            // 初版四色
+            { color: "rgba(255, 255, 255, 0)", ratio: 0 },
+            //
+            { color: "rgb(255, 128, 0)", ratio: 0.005 },
+            { color: "rgb(255, 128, 0)", ratio: 0.01 },
+            { color: "rgb(255, 128, 0)", ratio: 0.0925 },
+            { color: "rgb(255, 128, 0)", ratio: 0.175 },
+            //
+            { color: "rgb(255, 255, 0)", ratio: 0.19 },
+            { color: "rgb(255, 255, 0)", ratio: 0.34 },
+            { color: "rgb(255, 255, 0)", ratio: 0.4225 },
+            //
+            { color: "rgb(141, 212, 0)", ratio: 0.48 },
+            { color: "rgb(141, 212, 0)", ratio: 0.5875 },
+            //
+            { color: "rgb(56, 168, 0)", ratio: 0.65 },
+            { color: "rgb(56, 168, 0)", ratio: 0.7525 },
+            { color: "rgb(56, 168, 0)", ratio: 0.835 },
+            { color: "rgb(56, 168, 0)", ratio: 0.9175 },
+            { color: "rgb(56, 168, 0)", ratio: 1 },
+          ],
+          minDensity: 0,
+          maxDensity: 9.5,
+          referenceScale: 20290,
+          radius: 18,
+        };
+        const fileInput = document.getElementById("fileInput");
+        fileInput.addEventListener("change", function (event) {
+          const file = event.target.files[0];
+          const reader = new FileReader();
+
+          reader.onload = async function (event) {
+            const csvString = event.target.result;
+            view.map.removeAll();
+            addCsvLayer(csvString);
+          };
+
+          reader.readAsDataURL(file);
+        });
+
+        // 监听参数改变
+        document
+          .getElementById("maxDensity")
+          .addEventListener("change", (e) => {
+            changeRenderer({ maxDensity: e.target.value });
+          });
+        document
+          .getElementById("minDensity")
+          .addEventListener("change", (e) => {
+            changeRenderer({ minDensity: e.target.value });
+          });
+        document.getElementById("radius").addEventListener("change", (e) => {
+          changeRenderer({ radius: e.target.value });
+        });
+
+        document
+          .getElementById("referenceScale")
+          .addEventListener("change", (e) => {
+            changeRenderer({ referenceScale: e.target.value });
+          });
+
+        async function addCsvLayer(url) {
+          const csvLayer = new CSVLayer({
+            id: "heatmap-csv",
+            url: url,
+            longitudeField: "x",
+            latitudeField: "y",
+            renderer,
+          });
+          locate(csvLayer);
+          let heatmapParams = {
+            layer: csvLayer,
+            view: view,
+            field: document.getElementById("field").value || field,
+          };
+          view.map.add(csvLayer);
+
+          const {
+            renderer: createR,
+            statistics,
+            ...rest
+          } = await heatmapRendererCreator.createRenderer(heatmapParams);
+
+          // csvLayer.renderer = createR;
+          console.log(createR, statistics, rest);
+          // console.log(getColorStops(createR.colorStops));
+          attachEvent(csvLayer);
+        }
+
+        function getColorStops(colorStops) {
+          function convertColorArrayToRGBA(colors) {
+            const { r, g, b, a } = colors;
+            return `rgba(${r}, ${g}, ${b}, ${a})`;
+          }
+          return colorStops.map((stop) => {
+            return {
+              ratio: stop.ratio,
+              color: convertColorArrayToRGBA(stop.color),
+            };
+          });
+        }
+
+        function locate(csvLayer) {
+          csvLayer.queryFeatures().then((result) => {
+            const features = result.features;
+            if (features.length > 0) {
+              view.goTo(features);
+            } else {
+              console.error("CSV 图层不包含任何要素。");
+            }
+          });
+        }
+
+        function attachEvent(csvLayer) {
+          document.getElementById("maxDensity").value =
+            csvLayer.renderer.maxDensity;
+          document.getElementById("minDensity").value =
+            csvLayer.renderer.minDensity;
+          document.getElementById("radius").value = csvLayer.renderer.radius;
+          document.getElementById("referenceScale").value =
+            csvLayer.renderer.referenceScale;
+        }
+
+        function changeRenderer(prop) {
+          const layer = view.map.findLayerById("heatmap-csv");
+          if (layer) {
+            layer.renderer.maxDensity =
+              document.getElementById("maxDensity").value;
+            layer.renderer.minDensity =
+              document.getElementById("minDensity").value;
+            layer.renderer.radius = document.getElementById("radius").value;
+            layer.renderer.referenceScale =
+              document.getElementById("referenceScale").value;
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <div class="wrap">
+      <label>最大密度：</label>
+      <input type="text" id="maxDensity" value="0" />
+      <label>最小密度：</label>
+      <input type="text" id="minDensity" value="0" />
+      <label>半径：</label>
+      <input type="text" id="radius" value="0" />
+      <label>参考比例：</label>
+      <input type="text" id="referenceScale" value="0" />
+      <label>权重字段：</label>
+      <input type="text" id="field" />
+      <input type="file" accept=".csv" id="fileInput" />
+    </div>
+  </body>
+</html>
