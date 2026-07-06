@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>上图测试</title>
+
+    <link rel="stylesheet" type="text/css" href="./file/4.33/esri/css/main.css">
+    <script type="text/javascript" src="./file/4.33/init.js"></script>
+
+    <!-- <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/4.33/esri/css/main.css">
+    <script type="text/javascript" src="https://js.arcgis.com/4.33//init.js"></script> -->
+
+    <style>
+        html,
+        body,
+        #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+    <script>
+        require(["esri/Map",
+            "esri/views/SceneView",
+            "esri/layers/WebTileLayer",
+            "esri/layers/FeatureLayer",
+            "esri/layers/support/TileInfo",
+            "esri/config"
+        ], function (Map, MapView, WebTileLayer, FeatureLayer, TileInfo, esriConfig) {
+
+            var map = new Map({});
+            var view = new MapView({
+                container: "map",
+                spatialReference: {
+                    wkid: 4490
+                },
+                map: map,
+            });
+            const featureLayer = new FeatureLayer({
+                url: "https://services.geoscene.cn/api121/jcyrepository/rest/services/DSI37978267687937/FeatureServer/0"
+            });
+
+            window.view = view;
+
+            map.add(featureLayer);
+            featureLayer.when(() => {
+                view.goTo(featureLayer.fullExtent);
+            });
+        })
+    </script>
+</head>
+
+<body>
+    <div id="map"></div>
+</body>
+
+</html>
+
+</html>

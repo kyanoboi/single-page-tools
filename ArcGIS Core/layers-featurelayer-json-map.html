@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>WebTileLayer加载4490天地图</title>
+
+    <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/4.22/esri/css/main.css">
+    <script type="text/javascript" src="https://js.arcgis.com/4.22/init.js"></script>
+
+    <!-- <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/4.33/esri/css/main.css">
+    <script type="text/javascript" src="https://js.arcgis.com/4.33//init.js"></script> -->
+
+    
+
+    <style>
+        html,
+        body,
+        #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+    <script>
+        require(["esri/Map",
+            "esri/views/SceneView",
+            "esri/layers/WebTileLayer",
+            "esri/layers/FeatureLayer",
+            "esri/layers/support/TileInfo",
+            "esri/config"
+        ], function (Map, MapView, WebTileLayer, FeatureLayer, TileInfo, esriConfig) {
+             
+            // esriConfig.request.interceptors.push({
+            //     urls: /FeatureServer\/\d+$/,
+            //     after: function (response) {
+            //          response.data.supportedQueryFormats = "JSON";
+            //     }
+            // })
+
+            var tileInfo = new TileInfo({
+                "rows": 256,
+                "cols": 256,
+                "dpi": 96,
+                "format": "PNG",
+                "compressionQuality": 0,
+                "origin": {
+                    "x": -180,
+                    "y": 90
+                },
+                "spatialReference": {
+                    "wkid": 4490,
+                    "latestWkid": 4490
+                },
+                "lods": [{
+                    "level": 0,
+                    "levelValue": 1,
+                    "resolution": 0.703125,
+                    "scale": 295828763.7958547
+                },
+                {
+                    "level": 1,
+                    "levelValue": 2,
+                    "resolution": 0.3515625,
+                    "scale": 147914381.89792734
+                },
+                {
+                    "level": 2,
+                    "levelValue": 3,
+                    "resolution": 0.17578125,
+                    "scale": 73957190.94896367
+                },
+                {
+                    "level": 3,
+                    "levelValue": 4,
+                    "resolution": 0.087890625,
+                    "scale": 36978595.474481836
+                },
+                {
+                    "level": 4,
+                    "levelValue": 5,
+                    "resolution": 0.0439453125,
+                    "scale": 18489297.737240918
+                },
+                {
+                    "level": 5,
+                    "levelValue": 6,
+                    "resolution": 0.02197265625,
+                    "scale": 9244648.868620459
+                },
+                {
+                    "level": 6,
+                    "levelValue": 7,
+                    "resolution": 0.010986328125,
+                    "scale": 4622324.4343102295
+                },
+                {
+                    "level": 7,
+                    "levelValue": 8,
+                    "resolution": 0.0054931640625,
+                    "scale": 2311162.2171551147
+                },
+                {
+                    "level": 8,
+                    "levelValue": 9,
+                    "resolution": 0.00274658203125,
+                    "scale": 1155581.1085775574
+                },
+                {
+                    "level": 9,
+                    "levelValue": 10,
+                    "resolution": 0.001373291015625,
+                    "scale": 577790.5542887787
+                },
+                {
+                    "level": 10,
+                    "levelValue": 11,
+                    "resolution": 0.0006866455078125,
+                    "scale": 288895.27714438934
+                },
+                {
+                    "level": 11,
+                    "levelValue": 12,
+                    "resolution": 0.00034332275390625,
+                    "scale": 144447.63857219467
+                },
+                {
+                    "level": 12,
+                    "levelValue": 13,
+                    "resolution": 0.000171661376953125,
+                    "scale": 72223.81928609734
+                },
+                {
+                    "level": 13,
+                    "levelValue": 14,
+                    "resolution": 0.0000858306884765625,
+                    "scale": 36111.90964304867
+                },
+                {
+                    "level": 14,
+                    "levelValue": 15,
+                    "resolution": 0.00004291534423828125,
+                    "scale": 18055.954821524334
+                },
+                {
+                    "level": 15,
+                    "levelValue": 16,
+                    "resolution": 0.000021457672119140625,
+                    "scale": 9027.977410762167
+                },
+                {
+                    "level": 16,
+                    "levelValue": 17,
+                    "resolution": 0.000010728836059570312,
+                    "scale": 4513.9887053810835
+                },
+                {
+                    "level": 17,
+                    "levelValue": 18,
+                    "resolution": 0.000005364418029785156,
+                    "scale": 2256.9943526905417
+                }
+                ]
+            });
+            var tiledLayer = new WebTileLayer("http://{subDomain}.tianditu.gov.cn/img_c/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=img&STYLE=default&FORMAT=tiles&TILEMATRIXSET=c&TILEMATRIX={level}&TILEROW={row}&TILECOL={col}&tk=d5224c17deb55ca3998ff7d1324e8852", {
+                subDomains: ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"],
+                tileInfo: tileInfo,
+                spatialReference: { wkid: 4490 }, //4.12必须指定spatialReference属性。4.11 可有可无。
+                // fullExtent: {
+                //     // xmin:121.11328124999999,ymin:29.707031249999996,xmax:122.28906249999999,ymax:29.882812499999996,
+                //     xmax: 108.51134880806202,xmin: 107.49132006654699,ymax: 21.969398751519034,ymin: 21.501347252601036,
+                //     spatialReference: 4490
+                // },
+            });
+
+
+            var map = new Map({
+                // basemap: {
+                //     baseLayers: [tiledLayer]
+                // }
+            });
+            var view = new MapView({
+                container: "map",
+                spatialReference: {
+                    wkid: 4490
+                },
+                map: map,
+            });
+            const featureLayer = new FeatureLayer({
+                // url: "https://cim.geoscene.cn/server/rest/services/%E6%88%BF%E5%B1%8B/MapServer/0"
+                // url: "https://geoplat.geoscene.cn/server/rest/services/Hosted/%E9%A1%B9%E7%9B%AE%E6%95%B0%E6%8D%AE/FeatureServer/0"
+                // url: "http://geoplat.geoscene.cn/server/rest/services/Hosted/项目谋划范围/FeatureServer/1"
+                url: "https://services.geoscene.cn/api121/jcyrepository/rest/services/DSI37978267687937/FeatureServer/0"
+            });
+
+            window.view = view;
+
+            map.add(featureLayer);
+            featureLayer.when(() => {
+                view.goTo(featureLayer.fullExtent);
+            });
+
+
+        })
+    </script>
+</head>
+
+<body>
+    <div id="map"></div>
+</body>
+
+</html>
+
+</html>
