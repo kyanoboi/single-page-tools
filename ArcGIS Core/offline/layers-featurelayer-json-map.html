@@ -7,11 +7,11 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>上图测试</title>
 
-    <link rel="stylesheet" type="text/css" href="./file/4.33/esri/css/main.css">
-    <script type="text/javascript" src="./file/4.33/init.js"></script>
+    <!-- <link rel="stylesheet" type="text/css" href="./file/4.33/esri/css/main.css">
+    <script type="text/javascript" src="./file/4.33/init.js"></script> -->
 
-    <!-- <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/4.33/esri/css/main.css">
-    <script type="text/javascript" src="https://js.arcgis.com/4.33//init.js"></script> -->
+    <link rel="stylesheet" type="text/css" href="https://js.arcgis.com/4.33/esri/css/main.css">
+    <script type="text/javascript" src="https://js.arcgis.com/4.33/init.js"></script>
 
     <style>
         html,
@@ -25,23 +25,26 @@
     </style>
     <script>
         require(["esri/Map",
-            "esri/views/SceneView",
+            "esri/views/MapView",
             "esri/layers/WebTileLayer",
             "esri/layers/FeatureLayer",
             "esri/layers/support/TileInfo",
             "esri/config"
         ], function (Map, MapView, WebTileLayer, FeatureLayer, TileInfo, esriConfig) {
 
-            var map = new Map({});
+            var map = new Map({ });
             var view = new MapView({
                 container: "map",
+                // spatialReference: {
+                //     wkid: 4524
+                // },
+                map,
+            });
+            const featureLayer = new FeatureLayer({
+                url: "https://services.geoscene.cn/api121/jcyrepository/rest/services/DSI38376216938882/FeatureServer/0",
                 spatialReference: {
                     wkid: 4490
                 },
-                map: map,
-            });
-            const featureLayer = new FeatureLayer({
-                url: "https://services.geoscene.cn/api121/jcyrepository/rest/services/DSI37978267687937/FeatureServer/0"
             });
 
             window.view = view;

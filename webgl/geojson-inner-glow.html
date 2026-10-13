@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+        
+    <meta charset="UTF-8" />
+        
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+        
+    <title>GeoJSON · WebGL 边界内发光</title>
+        
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #050d18;
+        color: #d9e8f6;
+        font:
+          14px system-ui,
+          sans-serif;
+      }
+
+      canvas#view {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        cursor: grab;
+      }
+
+      canvas#view:active {
+        cursor: grabbing;
+      }
+
+      .panel {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        width: 300px;
+        padding: 23px;
+        background: #0c1928ed;
+        border: 1px solid #26384c;
+        border-radius: 16px;
+        box-shadow: 0 15px 50px #0006;
+      }
+
+      h1 {
+        font-size: 20px;
+        margin: 6px 0 12px;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 2px;
+        color: #62dbe9;
+      }
+
+      p {
+        color: #8da5bd;
+        line-height: 1.7;
+        font-size: 12px;
+      }
+
+      button,
+      .upload {
+        display: block;
+        width: 100%;
+        padding: 11px;
+        border: 1px solid #34556b;
+        background: #163445;
+        color: #c4faff;
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: center;
+        font: inherit;
+      }
+
+      input[type="file"] {
+        display: none;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 21px;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: #54dce9;
+        margin-top: 12px;
+      }
+
+      input[type="color"] {
+        width: 44px;
+        height: 28px;
+        border: 0;
+        background: transparent;
+      }
+
+      output {
+        font-variant-numeric: tabular-nums;
+        color: #62dbe9;
+      }
+
+      button {
+        background: transparent;
+        margin-top: 16px;
+        color: #99aec4;
+      }
+
+      #status {
+        margin-bottom: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .foot {
+        position: fixed;
+        bottom: 22px;
+        right: 25px;
+        color: #738aa3;
+        font-size: 12px;
+        pointer-events: none;
+      }
+
+      details {
+        margin-top: 18px;
+        color: #8da5bd;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      summary {
+        cursor: pointer;
+      }
+
+      code {
+        color: #b4dbe6;
+      }
+
+      @media (max-width: 650px) {
+        .panel {
+          top: 12px;
+          left: 12px;
+          width: 250px;
+          padding: 16px;
+          max-height: 65vh;
+          overflow: auto;
+        }
+
+        .foot {
+          bottom: 12px;
+          font-size: 10px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="view"></canvas>    
+    <section class="panel">
+              
+      <div class="eyebrow">WEBGL2 / VECTOR INNER GLOW</div>
+              
+      <h1>矢量边界 · 向内发光</h1>
+              
+      <p>导入国家边界 GeoJSON，光晕沿边缘向面内自然衰减。</p>
+      <label class="upload"
+        >选择 GeoJSON 文件<input
+          id="file"
+          type="file"
+          accept=".geojson,.json,application/geo+json,application/json" /></label
+      >        
+      <div class="row">
+        <label for="color">发光颜色</label
+        ><input id="color" type="color" value="#36e4ff" />
+      </div>
+              
+      <div class="row">
+        <label for="width">发光宽度</label><output id="widthOut">28 px</output>
+      </div>
+      <input id="width" type="range" min="2" max="100" value="28" />        
+      <div class="row">
+        <label for="strength">发光强度</label
+        ><output id="strengthOut">1.6</output>
+      </div>
+      <input
+        id="strength"
+        type="range"
+        min="0.2"
+        max="4"
+        step="0.1"
+        value="1.6"
+      />        
+      <div class="row">
+        <label for="fill">面填充</label><output id="fillOut">12%</output>
+      </div>
+      <input id="fill" type="range" min="0" max="50" value="12" />        
+      <div class="row">
+        <label for="pulse">呼吸动画</label
+        ><input id="pulse" type="checkbox" checked />
+      </div>
+      <button id="reset">重置视图</button>        
+      <p id="status" role="status">正在初始化…</p>
+              
+      <details>
+                    
+        <summary>矢量渲染与数据说明</summary>
+                    
+        <p>
+          保留原始矢量顶点，缩放时重新绘制几何，不放大缓存纹理。每条边使用实例化矩形，片元着色器解析计算到线段的距离；MAX
+          混合避免边与边叠加过亮。Stencil 奇偶填充裁剪面外，MSAA               
+          抗锯齿，并适配屏幕像素密度。
+        </p>
+                    
+        <p>
+          输入 EPSG:4326 的 Polygon / MultiPolygon，可包含孔洞。使用 Web
+          Mercator               
+          显示。不支持跨日期变更线的面。应导入已经融合的国家面；省界拼接或重叠面会显示内部边界。线要素忽略。
+        </p>
+                    
+        <p>
+          缩放不再受固定距离场分辨率限制，但不能补出源数据缺少的细节；低精度边界放大后仍会呈现原始折线。顶点很多时，拖动和缩放的帧率取决于显卡性能。需要
+          WebGL2。
+        </p>
+                
+      </details>
+          
+    </section>
+        
+    <div class="foot">
+      拖动平移 · 滚轮缩放 · 双击复位 · 本地读取，不上传数据
+    </div>
+        
+    <script>
+      "use strict";
+      const $ = (id) => document.getElementById(id),
+        canvas = $("view");
+      const gl = canvas.getContext("webgl2", { alpha: false, antialias: true });
+      function fail(e) {
+        $("status").textContent = "错误：" + e.message;
+        console.error(e);
+      }
+      if (!gl) {
+        fail(Error("需要支持 WebGL2 的浏览器及硬件加速。"));
+        throw Error("WebGL2 unavailable");
+      }
+      function program(v, f) {
+        const p = gl.createProgram();
+        for (const [type, src] of [
+          [gl.VERTEX_SHADER, v],
+          [gl.FRAGMENT_SHADER, f],
+        ]) {
+          const s = gl.createShader(type);
+          gl.shaderSource(s, "#version 300 es\n" + src);
+          gl.compileShader(s);
+          if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+            throw Error(gl.getShaderInfoLog(s));
+          gl.attachShader(p, s);
+        }
+        gl.linkProgram(p);
+        if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+          throw Error(gl.getProgramInfoLog(p));
+        return p;
+      }
+      const quadVS = `precision highp float;out vec2 uv;void main(){vec2 q=vec2((gl_VertexID<<1)&2,gl_VertexID&2);uv=q;gl_Position=vec4(q*2.-1.,0.,1.);}`;
+      const solidFS = `precision highp float;out vec4 result;void main(){result=vec4(1.);}`;
+      const maskP = program(
+        `precision highp float;layout(location=0) in vec2 point;uniform vec2 viewport,center;uniform float scale;void main(){gl_Position=vec4((point*scale+center)/viewport*2.-1.,0.,1.);}`,
+        solidFS,
+      );
+      const fillP = program(quadVS, solidFS);
+      const glowP = program(
+        `precision highp float;layout(location=0) in vec4 segment;uniform vec2 viewport,center;uniform float scale,width;flat out vec2 a,b;void main(){a=segment.xy*scale+center;b=segment.zw*scale+center;vec2 tangent=normalize(b-a);vec2 normal=vec2(-tangent.y,tangent.x);int id=gl_VertexID;float end=(id==1||id==2||id==4)?1.:0.;float side=(id==2||id==4||id==5)?1.:-1.;float radius=width*3.+2.;vec2 p=mix(a,b,end)+tangent*(end*2.-1.)*radius+normal*side*radius;gl_Position=vec4(p/viewport*2.-1.,0.,1.);}`,
+        `precision highp float;flat in vec2 a,b;uniform float width;out vec4 result;void main(){vec2 ab=b-a;float t=clamp(dot(gl_FragCoord.xy-a,ab)/dot(ab,ab),0.,1.);float d=length(gl_FragCoord.xy-(a+t*ab));float glow=exp(-3.*d/width);float edge=1.-smoothstep(.25,1.25,d);result=vec4(glow,edge,0.,1.);}`,
+      );
+      const finalP = program(
+        quadVS,
+        `precision highp float;in vec2 uv;uniform sampler2D maskTex,glowTex;uniform vec3 color;uniform float fill,strength,breath,dpr;out vec4 result;void main(){float mask=texture(maskTex,uv).r;vec2 light=texture(glowTex,uv).rg;vec2 grid=abs(fract(gl_FragCoord.xy/dpr/48.)-.5);vec3 bg=vec3(.0196,.051,.094)+step(.49,max(grid.x,grid.y))*.008;vec3 inside=bg+color*(fill+light.r*strength*breath*.72+light.g*.3);result=vec4(mix(bg,inside,mask),1.);}`,
+      );
+      const loc = new Map();
+      function u(p, name) {
+        let m = loc.get(p);
+        if (!m) {
+          m = {};
+          loc.set(p, m);
+        }
+        if (!(name in m)) m[name] = gl.getUniformLocation(p, name);
+        return m[name];
+      }
+      const emptyVAO = gl.createVertexArray(),
+        maskVAO = gl.createVertexArray(),
+        edgeVAO = gl.createVertexArray();
+      const maskBuffer = gl.createBuffer(),
+        edgeBuffer = gl.createBuffer();
+      gl.bindVertexArray(maskVAO);
+      gl.bindBuffer(gl.ARRAY_BUFFER, maskBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      gl.bindVertexArray(edgeVAO);
+      gl.bindBuffer(gl.ARRAY_BUFFER, edgeBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+      gl.vertexAttribDivisor(0, 1);
+      gl.bindVertexArray(emptyVAO);
+      function target() {
+        const texture = gl.createTexture(),
+          fbo = gl.createFramebuffer();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          texture,
+          0,
+        );
+        return { texture, fbo };
+      }
+      const maskTarget = target(),
+        glowTarget = target(),
+        msFBO = gl.createFramebuffer(),
+        msColor = gl.createRenderbuffer(),
+        msStencil = gl.createRenderbuffer();
+      const supported = gl.getInternalformatParameter(
+          gl.RENDERBUFFER,
+          gl.RGBA8,
+          gl.SAMPLES,
+        ),
+        supportedDS = gl.getInternalformatParameter(
+          gl.RENDERBUFFER,
+          gl.DEPTH24_STENCIL8,
+          gl.SAMPLES,
+        );
+      const samples =
+        Array.from(supported)
+          .filter((n) => n <= 4 && Array.from(supportedDS).includes(n))
+          .sort((a, b) => b - a)[0] || 0;
+      let zoom = 1,
+        pan = [0, 0],
+        base = 500,
+        cx = 0,
+        cy = 0,
+        dpr = 1,
+        dirty = true,
+        ready = false,
+        groups = [],
+        edgeCount = 0;
+      function checkFBO() {
+        if (
+          gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE
+        )
+          throw Error("显卡无法创建所需渲染缓冲。");
+      }
+      function resize() {
+        const limit = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+        dpr = Math.min(
+          devicePixelRatio || 1,
+          limit / innerWidth,
+          limit / innerHeight,
+        );
+        canvas.width = Math.max(1, Math.round(innerWidth * dpr));
+        canvas.height = Math.max(1, Math.round(innerHeight * dpr));
+        const w = canvas.width,
+          h = canvas.height;
+        for (const t of [maskTarget, glowTarget]) {
+          gl.bindTexture(gl.TEXTURE_2D, t.texture);
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA8,
+            w,
+            h,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+          );
+          gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo);
+          checkFBO();
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, msFBO);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, msColor);
+        gl.renderbufferStorageMultisample(
+          gl.RENDERBUFFER,
+          samples,
+          gl.RGBA8,
+          w,
+          h,
+        );
+        gl.framebufferRenderbuffer(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.RENDERBUFFER,
+          msColor,
+        );
+        gl.bindRenderbuffer(gl.RENDERBUFFER, msStencil);
+        gl.renderbufferStorageMultisample(
+          gl.RENDERBUFFER,
+          samples,
+          gl.DEPTH24_STENCIL8,
+          w,
+          h,
+        );
+        gl.framebufferRenderbuffer(
+          gl.FRAMEBUFFER,
+          gl.DEPTH_STENCIL_ATTACHMENT,
+          gl.RENDERBUFFER,
+          msStencil,
+        );
+        checkFBO();
+        const reserve = innerWidth < 650 ? 0 : 350;
+        base =
+          Math.max(100, Math.min(innerWidth - reserve - 50, innerHeight - 90)) *
+          0.94;
+        cx = reserve + (innerWidth - reserve) / 2;
+        cy = innerHeight / 2;
+        dirty = true;
+      }
+      function transform(p) {
+        gl.uniform2f(u(p, "viewport"), canvas.width, canvas.height);
+        gl.uniform2f(u(p, "center"), (cx + pan[0]) * dpr, (cy + pan[1]) * dpr);
+        gl.uniform1f(u(p, "scale"), base * zoom * dpr);
+      }
+      // Rebuild screen-resolution passes from ORIGINAL VECTOR VERTICES on every view change.
+      // The offscreen images are never enlarged when zooming.
+function geometryPass() {
+        const w=canvas.width,h=canvas.height;
+        gl.viewport(0,0,w,h);
+        gl.disable(gl.BLEND);
+        gl.bindFramebuffer(gl.FRAMEBUFFER,msFBO);
+        gl.clearColor(0,0,0,0);
+        gl.colorMask(true,true,true,true);
+        gl.stencilMask(255);
+        gl.clear(gl.COLOR_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
+        gl.enable(gl.STENCIL_TEST);
+        for(const rings of groups) {
+          gl.stencilMask(255);
+          gl.clear(gl.STENCIL_BUFFER_BIT);
+          gl.colorMask(false,false,false,false);
+          gl.stencilFunc(gl.ALWAYS,0,255);
+          gl.stencilOp(gl.KEEP,gl.KEEP,gl.INVERT);
+          gl.useProgram(maskP);
+          transform(maskP);
+          gl.bindVertexArray(maskVAO);
+          /* Triangle fans with stencil parity correctly fill concave rings and holes. */for(const r of rings)gl.drawArrays(gl.TRIANGLE_FAN,r.start,r.count);
+          gl.colorMask(true,true,true,true);
+          gl.stencilMask(0);
+          gl.stencilFunc(gl.NOTEQUAL,0,255);
+          gl.stencilOp(gl.KEEP,gl.KEEP,gl.KEEP);
+          gl.useProgram(fillP);
+          gl.bindVertexArray(emptyVAO);
+          gl.drawArrays(gl.TRIANGLES,0,3);
+        }
+        gl.disable(gl.STENCIL_TEST);
+        gl.stencilMask(255);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER,msFBO);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER,maskTarget.fbo);
+        gl.blitFramebuffer(0,0,w,h,0,0,w,h,gl.COLOR_BUFFER_BIT,gl.NEAREST);
+        gl.bindFramebuffer(gl.FRAMEBUFFER,glowTarget.fbo);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.enable(gl.BLEND);
+        gl.blendEquation(gl.MAX);
+        gl.blendFunc(gl.ONE,gl.ONE);
+        gl.useProgram(glowP);
+        transform(glowP);
+        gl.uniform1f(u(glowP,'width'),+$('width').value*dpr);
+        gl.bindVertexArray(edgeVAO);
+        gl.drawArraysInstanced(gl.TRIANGLES,0,6,edgeCount);
+        gl.disable(gl.BLEND);
+        gl.blendEquation(gl.FUNC_ADD);
+        dirty=false;
+      }
+      function collect(obj,out) {
+        if(!obj||typeof obj!=='object')return;
+        if(obj.type==='FeatureCollection')(obj.features||[]).forEach(f=>collect(f,out));
+        else if(obj.type==='Feature')collect(obj.geometry,out);
+        else if(obj.type==='GeometryCollection')(obj.geometries||[]).forEach(g=>collect(g,out));
+        else if(obj.type==='Polygon')out.push(obj.coordinates);
+        else if(obj.type==='MultiPolygon')out.push(...obj.coordinates)
+      }
+      function project(p) {
+        if(!Array.isArray(p)||!Number.isFinite(p[0])||!Number.isFinite(p[1])||Math.abs(p[0])>180||Math.abs(p[1])>90)throw Error('坐标必须为 WGS84 经纬度。');
+        const lat=Math.max(-85.05112878,Math.min(85.05112878,p[1]))*Math.PI/180;
+        return[p[0]*Math.PI/180,Math.log(Math.tan(Math.PI/4+lat/2))]
+      }
+      function loadGeoJSON(json,name) {
+        const raw=[];
+        collect(json,raw);
+        if(!raw.length)throw Error('未找到 Polygon 或 MultiPolygon。');
+        let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+        const polys=raw.map(poly=> {
+          if(!Array.isArray(poly)||!poly.length)throw Error('多边形为空。');
+          return poly.map(ring=> {
+            if(!Array.isArray(ring)||ring.length<4)throw Error('坐标环至少需要 4 个坐标。');
+            return ring.map(p=> {
+              const q=project(p);
+              minX=Math.min(minX,q[0]);
+              maxX=Math.max(maxX,q[0]);
+              minY=Math.min(minY,q[1]);
+              maxY=Math.max(maxY,q[1]);
+              return q
+            })
+          })
+        });
+        const span=Math.max(maxX-minX,maxY-minY);
+        if(!(span>0))throw Error('范围为空。');
+        if(maxX-minX>Math.PI)throw Error('不支持跨日期变更线或经度跨度超过 180° 的面。');
+        const mx=(minX+maxX)/2,my=(minY+maxY)/2,vertices=[],edges=[],newGroups=[];
+        for(const poly of polys) {
+          const rings=[];
+          for(const rawRing of poly) {
+            const ring=rawRing.map(p=>[(p[0]-mx)/span,(p[1]-my)/span]);
+            rings.push( {
+              start:vertices.length/2,count:ring.length
+            });
+            for(let i=0;
+            i<ring.length;
+            i++) {
+              const a=ring[i],b=ring[(i+1)%ring.length];
+              vertices.push(...a);
+              if(a[0]!==b[0]||a[1]!==b[1])edges.push(...a,...b)
+            }
+          }
+          newGroups.push(rings)
+        }
+        gl.bindBuffer(gl.ARRAY_BUFFER,maskBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER,edgeBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(edges),gl.STATIC_DRAW);
+        groups=newGroups;
+        edgeCount=edges.length/4;
+        ready=true;
+        reset();
+        $('status').textContent=name+' · '+edgeCount.toLocaleString()+' 条矢量边 · '+samples+'× MSAA';
+      }
+      function reset() {
+        zoom=1;
+        pan=[0,0];
+        dirty=true
+      }
+      $('reset').onclick=reset;
+      canvas.ondblclick=reset;
+      window.addEventListener('resize',()=> {
+        try {
+          resize()
+        } catch(e) {
+          fail(e)
+        }
+      });
+      $('file').onchange=async e=> {
+        const f=e.target.files[0];
+        if(!f)return;
+        try {
+          $('status').textContent='正在读取矢量…';
+          loadGeoJSON(JSON.parse((await f.text()).replace(/^\uFEFF/,'')),f.name)
+        } catch(e) {
+          fail(e)
+        } finally {
+          $('file').value=''
+        }
+      };
+      ['width','strength','fill'].forEach(k=>$(k).oninput=()=> {
+        $(k+'Out').textContent=$(k).value+(k==='width'?' px':k==='fill'?'%':'');
+        if(k==='width')dirty=true
+      });
+      let drag=null;
+      canvas.onpointerdown=e=> {
+        drag=[e.clientX,e.clientY];
+        canvas.setPointerCapture(e.pointerId)
+      };
+      canvas.onpointermove=e=> {
+        if(drag) {
+          pan[0]+=e.clientX-drag[0];
+          pan[1]-=e.clientY-drag[1];
+          drag=[e.clientX,e.clientY];
+          dirty=true
+        }
+      };
+      canvas.onpointerup=canvas.onpointercancel=()=>drag=null;
+      canvas.addEventListener('wheel',e=> {
+        e.preventDefault();
+        const next=Math.max(.2,Math.min(10000,zoom*Math.exp(-e.deltaY*.001))),r=next/zoom,x=e.clientX-cx,y=innerHeight-e.clientY-cy;
+        pan[0]=x-(x-pan[0])*r;
+        pan[1]=y-(y-pan[1])*r;
+        zoom=next;
+        dirty=true
+      }, {
+        passive:false
+      });
+      canvas.addEventListener('webglcontextlost',e=> {
+        e.preventDefault();
+        ready=false;
+        $('status').textContent='WebGL 上下文丢失，请刷新页面。'
+      });
+      function render(time) {
+        if(ready) {
+          if(dirty)geometryPass();
+          gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+          gl.viewport(0,0,canvas.width,canvas.height);
+          gl.useProgram(finalP);
+          gl.bindVertexArray(emptyVAO);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D,maskTarget.texture);
+          gl.uniform1i(u(finalP,'maskTex'),0);
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D,glowTarget.texture);
+          gl.uniform1i(u(finalP,'glowTex'),1);
+          gl.uniform1f(u(finalP,'dpr'),dpr);
+          gl.uniform1f(u(finalP,'fill'),+$('fill').value/100);
+          gl.uniform1f(u(finalP,'strength'),+$('strength').value);
+          gl.uniform1f(u(finalP,'breath'),$('pulse').checked?.88+.12*Math.sin(time*.0018):1);
+          const c=$('color').value;
+          gl.uniform3f(u(finalP,'color'),parseInt(c.slice(1,3),16)/255,parseInt(c.slice(3,5),16)/255,parseInt(c.slice(5,7),16)/255);
+          gl.drawArrays(gl.TRIANGLES,0,3);
+          gl.activeTexture(gl.TEXTURE0);
+        }
+        requestAnimationFrame(render)
+      }
+      const demo= {
+        type:'MultiPolygon',coordinates:[[[[90,31],[92,36],[97,38],[100,42],[105,43],[107,40],[113,41],[116,38],[115,35],[119,33],[116,29],[112,27],[107,28],[103,26],[100,30],[96,29],[90,31]],[[103,33],[106,33],[106,35],[103,35],[103,33]]],[[[116,25],[117,27],[118,26],[117,24],[116,25]]]]
+      };
+      try {
+        resize();
+        loadGeoJSON(demo,'抽象演示（非中国边界），请导入你的数据');
+        requestAnimationFrame(render)
+      } catch(e) {
+        fail(e)
+      }
+</script>
+  </body>
+</html>
